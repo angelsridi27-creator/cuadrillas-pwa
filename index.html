@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>App Cuadrillas PWA v2.2</title>
+  <title>App Cuadrillas PWA v2.3</title>
   <link rel="manifest" href="manifest.json">
   <meta name="theme-color" content="#0056b3">
   <style>
@@ -19,21 +19,32 @@
     
     .categoria-header { background: #0056b3; color: white; padding: 8px 12px; border-radius: 4px; margin-top: 25px; margin-bottom: 10px; font-size: 16px; text-transform: uppercase; letter-spacing: 0.5px;}
     
-    .card { background: #fff; border: 1px solid #ddd; padding: 15px; margin: 12px 0; border-radius: 6px; border-left: 6px solid #ffc107; position: relative; transition: all 0.3s ease; }
-    .card-realizado { background-color: #e9ecef !important; color: #6c757d !important; border-left: 6px solid #6c757d !important; opacity: 0.8; }
+    /* Contenedor externo de la tarjeta */
+    .card { background: #fff; border: 1px solid #ddd; padding: 15px; margin: 12px 0; border-radius: 8px; position: relative; box-shadow: 0 2px 4px rgba(0,0,0,0.05); }
     
-    .badge { display: inline-block; padding: 4px 8px; font-size: 12px; font-weight: bold; border-radius: 4px; margin-bottom: 8px; text-transform: uppercase; }
+    /* --- NUEVO ESTILO DE BLOQUE SEGÚN CAPTURAS --- */
+    .block-vano { border: 2px solid #000000; border-radius: 4px; overflow: hidden; text-align: center; margin: 10px 0; background: #fff; }
+    .block-vano-header { background-color: #ffffff; color: #000000; font-weight: bold; font-size: 20px; padding: 8px 10px; border-bottom: 2px solid #000000; letter-spacing: 0.5px; }
+    .block-vano-body { font-weight: bold; font-size: 16px; padding: 22px 10px; color: #000000; text-transform: uppercase; line-height: 1.3; }
+    
+    /* Bloqueo y Grisado de tarjeta Realizada */
+    .card-realizado { background-color: #f8f9fa !important; border-color: #ced4da !important; opacity: 0.75; }
+    .card-realizado .block-vano { border-color: #6c757d !important; }
+    .card-realizado .block-vano-header { background-color: #e9ecef !important; color: #6c757d !important; border-bottom-color: #6c757d !important; }
+    .card-realizado .block-vano-body { background-color: #e9ecef !important; color: #6c757d !important; }
+    
+    .badge { display: inline-block; padding: 4px 8px; font-size: 12px; font-weight: bold; border-radius: 4px; text-transform: uppercase; }
     .badge-pend { background: #ffc107; color: #000; }
     .badge-proc { background: #17a2b8; color: #fff; }
     .badge-real { background: #6c757d; color: #fff; }
     
-    .detalle-item { font-size: 14px; margin: 4px 0; line-height: 1.4; }
+    .detalle-item { font-size: 13px; margin: 4px 0; line-height: 1.4; color: #555; }
     .acciones { margin-top: 15px; display: flex; gap: 8px; }
     .acciones button { flex: 1; padding: 12px; font-size: 14px; font-weight: bold; border: none; border-radius: 4px; cursor: pointer; color: white; }
     
     .status-box { padding: 12px; text-align: center; font-weight: bold; border-radius: 4px; margin-bottom: 15px; font-size: 14px; }
     .status-sync { background-color: #fff3cd; color: #856404; border: 1px solid #ffeeba; }
-    .msg-bloqueado { margin-top: 12px; font-weight: bold; color: #28a745; font-size: 14px; display: flex; align-items: center; gap: 5px; }
+    .msg-bloqueado { margin-top: 12px; font-weight: bold; color: #6c757d; font-size: 14px; text-align: center; background: #e9ecef; padding: 8px; border-radius: 4px; border: 1px solid #ced4da; }
   </style>
 </head>
 <body>
@@ -68,7 +79,7 @@
 </div>
 
 <script>
-  // Enlace /exec de Google Apps Script integrado directamente
+  // Enlace /exec de tu Google Apps Script ya integrado
   const WEB_APP_URL = "https://script.google.com/macros/s/AKfycbx8KCIwjKTJM4pjqUrmrgP2Z9rHr0uIfO2r34lHWLfvRa4dPpByc3-ysX_Jbdpqt73YTg/exec";
 
   let reclamosCache = JSON.parse(localStorage.getItem('cuadrilla_reclamos')) || [];
@@ -187,13 +198,16 @@
           card.className = 'card card-realizado';
         } else {
           card.className = 'card';
-          if (r.colorFondo) card.style.backgroundColor = r.colorFondo;
-          card.style.borderLeft = estadoActual === 'En proceso' ? '6px solid #17a2b8' : '6px solid #ffc107';
         }
 
+        // Extracción de Vano (Columna E -> índice 4) y Detalle (Columna I -> índice 8)
+        let vanoTexto = r.datosFila[4] !== undefined && r.datosFila[4] !== "" ? r.datosFila[4] : "S/V";
+        let detalleTexto = r.datosFila[8] !== undefined && r.datosFila[8] !== "" ? r.datosFila[8] : "SIN DETALLE";
+
+        // Renderizado secundario de otras columnas que puedan servir, ocultando fijas, Vano, Detalle y Color
         let detallesHtml = '';
         r.cabeceras.forEach((cab, idx) => {
-          if (cab !== "LINEA" && cab !== "ESTADO" && idx !== 12 && r.datosFila[idx] !== "") {
+          if (cab !== "LINEA" && cab !== "ESTADO" && idx !== 12 && idx !== 4 && idx !== 8 && r.datosFila[idx] !== "") {
             detallesHtml += `<div class="detalle-item"><b>${cab}:</b> ${r.datosFila[idx]}</div>`;
           }
         });
@@ -203,7 +217,7 @@
         if (estadoActual === 'Realizado') badgeClase = 'badge-real';
 
         if (estadoActual === 'Realizado') {
-          bloqueAcciones = `<div class="msg-bloqueado">✓ Guardado como Realizado (Bloqueado)</div>`;
+          bloqueAcciones = `<div class="msg-bloqueado">✓ Tarea Realizada y Bloqueada</div>`;
         } else {
           bloqueAcciones = `
             <div class="acciones">
@@ -213,10 +227,21 @@
           `;
         }
 
+        // Armamos la estructura de bloque idéntica a tus capturas
         card.innerHTML = `
-          <span class="badge ${badgeClase}">${estadoActual}</span>
-          <div class="detalle-item"><b>Fila:</b> #${r.numFila}</div>
-          ${detallesHtml}
+          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+            <span class="badge ${badgeClase}">${estadoActual}</span>
+            <span style="font-size: 12px; color: #777; font-weight: bold;">Fila #${r.numFila}</span>
+          </div>
+          
+          <div class="block-vano">
+            <div class="block-vano-header">${vanoTexto}</div>
+            <div class="block-vano-body" style="${estadoActual !== 'Realizado' && r.colorFondo ? 'background-color:' + r.colorFondo : ''}">
+              ${detalleTexto}
+            </div>
+          </div>
+          
+          ${detallesHtml ? `<div style="background: #f8f9fa; padding: 8px; border-radius: 4px; margin: 8px 0; border: 1px solid #eee;">${detallesHtml}</div>` : ''}
           ${bloqueAcciones}
         `;
         listaDiv.appendChild(card);
@@ -273,16 +298,21 @@
     actualizarAlertaCambios();
     renderizarReclamosAgrupados();
 
+    let vanoWpp = reclamo.datosFila[4] !== undefined && reclamo.datosFila[4] !== "" ? reclamo.datosFila[4] : "-";
+    let detalleWpp = reclamo.datosFila[8] !== undefined && reclamo.datosFila[8] !== "" ? reclamo.datosFila[8] : "-";
+
     let msg = `*REPORTE DE MOVIMIENTO RAT*\n`;
     msg += `*Estado:* ${nuevoEstado === 'Realizado' ? '✅ REALIZADO' : '⏳ EN PROCESO'}\n`;
     msg += `*Fila:* #${reclamo.numFila}\n`;
     msg += `*Línea:* ${reclamo.linea}\n`;
+    msg += `*Vano:* ${vanoWpp}\n`;
+    msg += `*Detalle:* ${detalleWpp}\n`;
     msg += `*Categoría:* ${reclamo.categoria}\n`;
     msg += `*Cuadrilla:* ${cuadrilla}\n`;
     msg += `*Capataz:* ${capataz}\n`;
     
-    if (comentario) {
-      msg += `*Detalle:* _${comentario}_\n`;
+    if (comentario && nuevoEstado === "En proceso") {
+      msg += `*Avance:* _${comentario}_\n`;
     }
     
     msg += `*Ubicación:* ${linkMapas}\n`;
