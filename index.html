@@ -1,0 +1,209 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>App Cuadrillas PWA</title>
+  <link rel="manifest" href="manifest.json">
+  <meta name="theme-color" content="#007bff">
+  <style>
+    body { font-family: Arial, sans-serif; margin: 15px; background-color: #f4f6f9; color: #333; }
+    .container { max-width: 600px; margin: auto; background: white; padding: 20px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
+    h2 { text-align: center; color: #0056b3; margin-top: 5px;}
+    .btn { display: block; width: 100%; padding: 14px; margin: 10px 0; border: none; border-radius: 6px; font-size: 16px; font-weight: bold; cursor: pointer; text-align: center; box-sizing: border-box; text-decoration: none; }
+    .btn-primary { background-color: #007bff; color: white; }
+    .btn-success { background-color: #28a745; color: white; }
+    .btn-whatsapp { background-color: #25d366; color: white; }
+    select { width: 100%; padding: 12px; margin: 8px 0; border-radius: 4px; border: 1px solid #ccc; font-size: 16px; box-sizing: border-box; }
+    .card { background: #fff; border: 1px solid #ddd; padding: 15px; margin: 12px 0; border-radius: 6px; border-left: 6px solid #ffc107; }
+    .card.en-proceso { border-left-color: #17a2b8; }
+    .card.realizado { border-left-color: #28a745; background-color: #f1f9f1; }
+    .badge { display: inline-block; padding: 4px 8px; font-size: 12px; font-weight: bold; border-radius: 4px; margin-bottom: 8px; text-transform: uppercase; }
+    .badge-pend { background: #ffc107; color: #000; }
+    .badge-proc { background: #17a2b8; color: #fff; }
+    .badge-real { background: #28a745; color: #fff; }
+    .detalle-item { font-size: 14px; margin: 5px 0; line-height: 1.4; }
+    .acciones { margin-top: 12px; display: flex; gap: 8px; }
+    .acciones button { flex: 1; padding: 10px; font-size: 13px; font-weight: bold; border: none; border-radius: 4px; cursor: pointer; }
+    .status-box { padding: 12px; text-align: center; font-weight: bold; border-radius: 4px; margin-bottom: 15px; font-size: 14px; }
+    .status-sync { background-color: #fff3cd; color: #856404; border: 1px solid #ffeeba; }
+  </style>
+</head>
+<body>
+<div class="container">
+  <h2>Ejecución de Reclamos (PWA)</h2>
+  
+  <div id="sync-status" class="status-box status-sync" style="display:none;"></div>
+
+  <button class="btn btn-primary" onclick="descargarDatosOnline()">1. Cargar/Actualizar Datos (Con Señal)</button>
+  
+  <label for="select-linea"><b>Seleccionar Línea / Tramo:</b></label>
+  <select id="select-linea" onchange="filtrarPorLinea()">
+    <option value="">-- Seleccione una línea --</option>
+  </select>
+
+  <div id="lista-reclamos"></div>
+
+  <hr style="margin: 20px 0; border: 0; border-top: 1px solid #ccc;">
+  <button class="btn btn-whatsapp" onclick="enviarResumenWhatsApp()">2. Enviar Resumen al WhatsApp</button>
+  <button class="btn btn-success" onclick="sincronizarConPlanilla()">3. Sincronizar Cambios con Planilla</button>
+</div>
+
+<script>
+  // ⚠️ PONÉ ACÁ LA URL DE TU NUEVA IMPLEMENTACIÓN DE APPS SCRIPT
+  const WEB_APP_URL = "https://script.google.com/macros/s/AKfycbx8KCIwjKTJM4pjqUrmrgP2Z9rHr0uIfO2r34lHWLfvRa4dPpByc3-ysX_Jbdpqt73YTg/exec";
+
+  let reclamosCache = JSON.parse(localStorage.getItem('cuadrilla_reclamos')) || [];
+  let cambiosPendientes = JSON.parse(localStorage.getItem('cuadrilla_cambios')) || [];
+
+  window.onload = function() {
+    // Registrar el Service Worker para hacerla PWA
+    if ('serviceWorker' in navigator) {
+      navigator.serviceWorker.register('sw.js').then(() => console.log("SW Registrado"));
+    }
+    actualizarAlertaCambios();
+    poblarLineas();
+  };
+
+  function actualizarAlertaCambios() {
+    const alertBox = document.getElementById('sync-status');
+    if (cambiosPendientes.length > 0) {
+      alertBox.style.display = 'block';
+      alertBox.innerText = `⚠️ Tienes ${cambiosPendientes.length} cambio(s) pendientes de subir a la planilla.`;
+    } else {
+      alertBox.style.display = 'none';
+    }
+  }
+
+  function descargarDatosOnline() {
+    if(!navigator.onLine) return alert("Estás sin conexión. No puedes descargar datos nuevos ahora.");
+    document.body.style.opacity = "0.6";
+
+    fetch(`${WEB_APP_URL}?action=obtenerDatos`)
+      .then(res => res.json())
+      .then(res => {
+        document.body.style.opacity = "1";
+        if (res.error) return alert("Error: " + res.error);
+        reclamosCache = res.data;
+        localStorage.setItem('cuadrilla_reclamos', JSON.stringify(reclamosCache));
+        poblarLineas();
+        alert("¡Base de datos sincronizada en el teléfono! Listo para trabajar sin señal.");
+      })
+      .catch(() => {
+        document.body.style.opacity = "1";
+        alert("Error de red al intentar descargar los datos.");
+      });
+  }
+
+  function poblarLineas() {
+    const select = document.getElementById('select-linea');
+    select.innerHTML = '<option value="">-- Seleccione una línea --</option>';
+    const lineas = [...new Set(reclamosCache.map(r => r.linea))].filter(Boolean);
+    lineas.sort().forEach(l => {
+      const opt = document.createElement('option');
+      opt.value = l; opt.textContent = l;
+      select.appendChild(opt);
+    });
+    document.getElementById('lista-reclamos').innerHTML = '';
+  }
+
+  function filtrarPorLinea() {
+    const lineaSeleccionada = document.getElementById('select-linea').value;
+    const listaDiv = document.getElementById('lista-reclamos');
+    listaDiv.innerHTML = '';
+    if (!lineaSeleccionada) return;
+
+    const filtrados = reclamosCache.filter(r => r.linea === lineaSeleccionada);
+    if (filtrados.length === 0) {
+      listaDiv.innerHTML = '<p style="text-align:center; color:#666; margin-top:20px;">No hay reclamos pendientes.</p>';
+      return;
+    }
+
+    filtrados.forEach(r => {
+      const cambioLocal = cambiosPendientes.find(c => c.numFila === r.numFila);
+      const estadoActual = cambioLocal ? cambioLocal.nuevoEstado : r.estado;
+
+      const card = document.createElement('div');
+      card.className = `card ${estadoActual.toLowerCase().replace(" ", "-")}`;
+      
+      let badgeClass = 'badge-pend';
+      if(estadoActual.toLowerCase() === 'en proceso') badgeClass = 'badge-proc';
+      if(estadoActual.toLowerCase() === 'realizado') badgeClass = 'badge-real';
+
+      let detallesHtml = '';
+      r.cabeceras.forEach((cab, idx) => {
+        if (cab !== "LINEA" && cab !== "ESTADO" && r.datosFila[idx] !== "") {
+          detallesHtml += `<div class="detalle-item"><b>${cab}:</b> ${r.datosFila[idx]}</div>`;
+        }
+      });
+
+      card.innerHTML = `
+        <span class="badge ${badgeClass}">${estadoActual}</span>
+        <div class="detalle-item"><b>Fila:</b> #${r.numFila}</div>
+        ${detallesHtml}
+        <div class="acciones">
+          <button style="background:#17a2b8; color:white;" onclick="cambiarEstadoLocal(${r.numFila}, 'En proceso')">En Proceso</button>
+          <button style="background:#28a745; color:white;" onclick="cambiarEstadoLocal(${r.numFila}, 'Realizado')">Realizado</button>
+          <button style="background:#ffc107; color:black;" onclick="cambiarEstadoLocal(${r.numFila}, 'Pendiente')">Pendiente</button>
+        </div>
+      `;
+      listaDiv.appendChild(card);
+    });
+  }
+
+  function cambiarEstadoLocal(numFila, nuevoEstado) {
+    cambiosPendientes = cambiosPendientes.filter(c => c.numFila !== numFila);
+    cambiosPendientes.push({ numFila: numFila, nuevoEstado: nuevoEstado });
+    localStorage.setItem('cuadrilla_cambios', JSON.stringify(cambiosPendientes));
+    actualizarAlertaCambios();
+    filtrarPorLinea();
+  }
+
+  function enviarResumenWhatsApp() {
+    const lineaSeleccionada = document.getElementById('select-linea').value;
+    if (!lineaSeleccionada) return alert("Selecciona una línea.");
+
+    const reclamosDeLinea = reclamosCache.filter(r => r.linea === lineaSeleccionada);
+    let texto = `*RESUMEN DE CUADRILLA*\n*Línea:* ${lineaSeleccionada}\n\n`;
+
+    let cambiosHechos = false;
+    reclamosDeLinea.forEach(r => {
+      const cambio = cambiosPendientes.find(c => c.numFila === r.numFila);
+      if (cambio) {
+        cambiosHechos = true;
+        let icono = cambio.nuevoEstado === "Realizado" ? "✅" : (cambio.nuevoEstado === "En proceso" ? "⏳" : "⚠️");
+        let identificador = r.datosFila[2] || `Fila #${r.numFila}`;
+        texto += `${icono} *${identificador}* -> _${cambio.nuevoEstado}_\n`;
+      }
+    });
+
+    if (!cambiosHechos) return alert("No hay modificaciones en esta línea para reportar.");
+    window.open("https://api.whatsapp.com/send?text=" + encodeURIComponent(texto), "_blank");
+  }
+
+  function sincronizarConPlanilla() {
+    if (cambiosPendientes.length === 0) return alert("No hay cambios para subir.");
+    if (!navigator.onLine) return alert("Estás sin señal en este momento. Intenta al regresar.");
+    document.body.style.opacity = "0.6";
+
+    fetch(WEB_APP_URL, {
+      method: "POST",
+      mode: "no-cors", // Evita problemas de preflight en Apps Script
+      body: JSON.stringify({ action: "guardarCambios", cambios: cambiosPendientes })
+    })
+    .then(() => {
+      document.body.style.opacity = "1";
+      alert("¡Cambios enviados con éxito!");
+      cambiosPendientes = [];
+      localStorage.removeItem('cuadrilla_cambios');
+      actualizarAlertaCambios();
+      descargarDatosOnline();
+    })
+    .catch(() => {
+      document.body.style.opacity = "1";
+      alert("Error al intentar conectarse con Google Sheets.");
+    });
+  }
+</script>
+</body>
+</html>

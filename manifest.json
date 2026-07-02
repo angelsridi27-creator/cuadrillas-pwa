@@ -1,0 +1,9 @@
+{
+  "name": "App de Cuadrillas Reclamos",
+  "short_name": "Cuadrillas",
+  "start_url": "index.html",
+  "display": "standalone",
+  "background_color": "#f4f6f9",
+  "theme-color": "#007bff",
+  "orientation": "portrait"
+}
