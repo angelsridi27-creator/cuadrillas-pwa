@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>App Cuadrillas PWA v2</title>
+  <title>App Cuadrillas PWA v2.1</title>
   <link rel="manifest" href="manifest.json">
   <meta name="theme-color" content="#0056b3">
   <style>
@@ -19,10 +19,13 @@
     
     .categoria-header { background: #0056b3; color: white; padding: 8px 12px; border-radius: 4px; margin-top: 25px; margin-bottom: 10px; font-size: 16px; text-transform: uppercase; letter-spacing: 0.5px;}
     
-    .card { background: #fff; border: 1px solid #ddd; padding: 15px; margin: 12px 0; border-radius: 6px; border-left: 6px solid #ffc107; position: relative; }
+    .card { background: #fff; border: 1px solid #ddd; padding: 15px; margin: 12px 0; border-radius: 6px; border-left: 6px solid #ffc107; position: relative; transition: all 0.3s ease; }
+    .card-realizado { background-color: #e9ecef !important; color: #6c757d !important; border-left: 6px solid #6c757d !important; opacity: 0.8; }
+    
     .badge { display: inline-block; padding: 4px 8px; font-size: 12px; font-weight: bold; border-radius: 4px; margin-bottom: 8px; text-transform: uppercase; }
     .badge-pend { background: #ffc107; color: #000; }
     .badge-proc { background: #17a2b8; color: #fff; }
+    .badge-real { background: #6c757d; color: #fff; }
     
     .detalle-item { font-size: 14px; margin: 4px 0; line-height: 1.4; }
     .acciones { margin-top: 15px; display: flex; gap: 8px; }
@@ -30,6 +33,7 @@
     
     .status-box { padding: 12px; text-align: center; font-weight: bold; border-radius: 4px; margin-bottom: 15px; font-size: 14px; }
     .status-sync { background-color: #fff3cd; color: #856404; border: 1px solid #ffeeba; }
+    .msg-bloqueado { margin-top: 12px; font-weight: bold; color: #28a745; font-size: 14px; display: flex; align-items: center; gap: 5px; }
   </style>
 </head>
 <body>
@@ -37,7 +41,7 @@
   <h2>Control de Cuadrillas RAT</h2>
   
   <div class="seccion-encargado">
-    <label for="select-cuadrilla">👷 Seleccionar Cuadrilla:</label>
+    <label for="select-cuadrilla"><b>Compartido por Cuadrilla:</b></label>
     <select id="select-cuadrilla" onchange="guardarConfigLocal()">
       <option value="">-- Seleccione Cuadrilla --</option>
     </select>
@@ -94,7 +98,6 @@
       selCap.innerHTML += `<option value="${c}">${c}</option>`;
     });
 
-    // Recuperar lo que eligieron antes
     selCuad.value = localStorage.getItem('pref_cuadrilla') || "";
     selCap.value = localStorage.getItem('pref_capataz') || "";
   }
@@ -145,7 +148,7 @@
     select.innerHTML = '<option value="">-- Seleccione una línea --</option>';
     const lineas = [...new Set(reclamosCache.map(r => r.linea))].filter(Boolean);
     lineas.sort().forEach(l => {
-      select.innerHTML += `<option value="${l}">${l}</option>`;
+      select.innerHTML += `<option value="${l}">${l}</option>';
     });
     document.getElementById('lista-reclamos').innerHTML = '';
   }
@@ -162,7 +165,6 @@
       return;
     }
 
-    // --- AGRUPACIÓN POR CATEGORÍA ---
     const grupos = {};
     filtrados.forEach(r => {
       if (!grupos[r.categoria]) grupos[r.categoria] = [];
@@ -170,43 +172,55 @@
     });
 
     for (const categoria in grupos) {
-      // Título de Categoría
       const header = document.createElement('div');
       header.className = 'categoria-header';
       header.innerText = categoria;
       listaDiv.appendChild(header);
 
-      // Tarjetas de esa categoría
       grupos[categoria].forEach(r => {
         const cambioLocal = cambiosPendientes.find(c => c.numFila === r.numFila);
         const estadoActual = cambioLocal ? cambioLocal.nuevoEstado : r.estado;
 
         const card = document.createElement('div');
-        card.className = 'card';
         
-        // Aplicar color de fondo personalizado desde la celda de la columna M si existe
-        if (r.colorFondo) {
-          card.style.backgroundColor = r.colorFondo;
+        // Estilo condicional si ya fue Realizado
+        if (estadoActual === 'Realizado') {
+          card.className = 'card card-realizado';
+        } else {
+          card.className = 'card';
+          if (r.colorFondo) card.style.backgroundColor = r.colorFondo;
+          card.style.borderLeft = estadoActual === 'En proceso' ? '6px solid #17a2b8' : '6px solid #ffc107';
         }
-
-        // Estilo de borde por defecto según estado
-        card.style.borderLeft = estadoActual === 'En proceso' ? '6px solid #17a2b8' : '6px solid #ffc107';
 
         let detallesHtml = '';
         r.cabeceras.forEach((cab, idx) => {
-          if (cab !== "LINEA" && cab !== "ESTADO" && r.datosFila[idx] !== "") {
+          // Ocultamos de los detalles escritos las columnas fijas y la columna M (idx === 12)
+          if (cab !== "LINEA" && cab !== "ESTADO" && idx !== 12 && r.datosFila[idx] !== "") {
             detallesHtml += `<div class="detalle-item"><b>${cab}:</b> ${r.datosFila[idx]}</div>`;
           }
         });
 
+        // Configuración de botones o mensaje de bloqueo
+        let bloqueAcciones = '';
+        let badgeClase = estadoActual === 'En proceso' ? 'badge-proc' : 'badge-pend';
+        if (estadoActual === 'Realizado') badgeClase = 'badge-real';
+
+        if (estadoActual === 'Realizado') {
+          bloqueAcciones = `<div class="msg-bloqueado">✓ Guardado como Realizado (Bloqueado)</div>`;
+        } else {
+          bloqueAcciones = `
+            <div class="acciones">
+              <button style="background:#17a2b8;" onclick="procesarCambioEstado(${r.numFila}, 'En proceso')">En Proceso ⏳</button>
+              <button style="background:#28a745;" onclick="procesarCambioEstado(${r.numFila}, 'Realizado')">Realizado ✅</button>
+            </div>
+          `;
+        }
+
         card.innerHTML = `
-          <span class="badge ${estadoActual === 'En proceso' ? 'badge-proc' : 'badge-pend'}">${estadoActual}</span>
+          <span class="badge ${badgeClase}">${estadoActual}</span>
           <div class="detalle-item"><b>Fila:</b> #${r.numFila}</div>
           ${detallesHtml}
-          <div class="acciones">
-            <button style="background:#17a2b8;" onclick="procesarCambioEstado(${r.numFila}, 'En proceso')">En Proceso ⏳</button>
-            <button style="background:#28a745;" onclick="procesarCambioEstado(${r.numFila}, 'Realizado')">Realizado ✅</button>
-          </div>
+          ${bloqueAcciones}
         `;
         listaDiv.appendChild(card);
       });
@@ -225,17 +239,39 @@
     const reclamo = reclamosCache.find(r => r.numFila === numFila);
     let comentario = "";
 
-    // Si pasa a 'En proceso', solicitamos el breve texto obligatorio
     if (nuevoEstado === "En proceso") {
       comentario = prompt("Escriba un breve texto sobre el avance (Llegará a la columna J):");
-      if (comentario === null) return; // Canceló
+      if (comentario === null) return; 
       if (comentario.trim() === "") {
         alert("El texto es obligatorio para pasar a 'En proceso'.");
         return;
       }
     }
 
-    // Registrar localmente
+    // --- CAPTURA DE UBICACIÓN GPS ---
+    if (navigator.geolocation) {
+      navigator.geolocation.getCurrentPosition(
+        function(position) {
+          const lat = position.coords.latitude;
+          const lon = position.coords.longitude;
+          const urlMapas = `https://www.google.com/maps?q=${lat},${lon}`;
+          
+          guardarLocalYEnviarWpp(numFila, nuevoEstado, comentario, cuad, cap, reclamo, urlMapas);
+        },
+        function(error) {
+          console.warn("Error de GPS:", error.message);
+          // Si el GPS falla o no dan permiso, se manda el reporte aclarando eso
+          guardarLocalYEnviarWpp(numFila, nuevoEstado, comentario, cuad, cap, reclamo, "No disponible (Sin señal GPS o permiso denegado)");
+        },
+        { enableHighAccuracy: true, timeout: 6000 }
+      );
+    } else {
+      guardarLocalYEnviarWpp(numFila, nuevoEstado, comentario, cuad, cap, reclamo, "No soportado por este celular");
+    }
+  }
+
+  function guardarLocalYEnviarWpp(numFila, nuevoEstado, comentario, cuadrilla, capataz, reclamo, linkMapas) {
+    // Registrar localmente el cambio
     cambiosPendientes = cambiosPendientes.filter(c => c.numFila !== numFila);
     cambiosPendientes.push({ numFila: numFila, nuevoEstado: nuevoEstado, comentario: comentario });
     localStorage.setItem('cuadrilla_cambios', JSON.stringify(cambiosPendientes));
@@ -243,13 +279,9 @@
     actualizarAlertaCambios();
     renderizarReclamosAgrupados();
 
-    // --- DISPARO OBLIGATORIO DE WHATSAPP ---
-    ejecutarEnvioWhatsApp(reclamo, nuevoEstado, comentario, cuad, cap);
-  }
-
-  function ejecutarEnvioWhatsApp(reclamo, estado, comentario, cuadrilla, capataz) {
+    // Armar y disparar WhatsApp
     let msg = `*REPORTE DE MOVIMIENTO RAT*\n`;
-    msg += `*Estado:* ${estado === 'Realizado' ? '✅ REALIZADO' : '⏳ EN PROCESO'}\n`;
+    msg += `*Estado:* ${nuevoEstado === 'Realizado' ? '✅ REALIZADO' : '⏳ EN PROCESO'}\n`;
     msg += `*Fila:* #${reclamo.numFila}\n`;
     msg += `*Línea:* ${reclamo.linea}\n`;
     msg += `*Categoría:* ${reclamo.categoria}\n`;
@@ -259,8 +291,9 @@
     if (comentario) {
       msg += `*Detalle:* _${comentario}_\n`;
     }
+    
+    msg += `*Ubicación:* ${linkMapas}\n`;
 
-    // Abre de forma forzada la ventana de WhatsApp
     const urlWpp = "https://api.whatsapp.com/send?text=" + encodeURIComponent(msg);
     window.open(urlWpp, "_blank");
   }
@@ -277,7 +310,7 @@
     })
     .then(() => {
       document.body.style.opacity = "1";
-      alert("¡Planilla actualizada con éxito! Se registraron las fechas y los comentarios.");
+      alert("¡Planilla actualizada con éxito!");
       cambiosPendientes = [];
       localStorage.removeItem('cuadrilla_cambios');
       actualizarAlertaCambios();
