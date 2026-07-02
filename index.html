@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>App Cuadrillas PWA v3.5</title>
+  <title>App Cuadrillas PWA v3.6</title>
   <link rel="manifest" href="manifest.json">
   <meta name="theme-color" content="#0056b3">
   <style>
@@ -11,7 +11,6 @@
     .container { max-width: 600px; margin: auto; background: white; padding: 20px; border-radius: 10px; box-shadow: 0 4px 8px rgba(0,0,0,0.1); }
     h2 { text-align: center; color: #0056b3; margin-bottom: 20px; }
     
-    /* Pantallas */
     #pantalla-login { display: block; }
     #pantalla-principal { display: none; }
     
@@ -27,19 +26,14 @@
     
     .categoria-header { background: #0056b3; color: white; padding: 8px 12px; border-radius: 4px; margin-top: 25px; margin-bottom: 10px; font-size: 16px; text-transform: uppercase; letter-spacing: 0.5px;}
     
-    /* Tarjetas de Reclamos */
     .card { background: #fff; border: 1px solid #ddd; padding: 15px; margin: 12px 0; border-radius: 8px; position: relative; box-shadow: 0 2px 4px rgba(0,0,0,0.05); }
-    
-    /* Resaltado de Reclamo Prioritario (Columna D tildada) */
     .card-prioritaria { border: 3px solid #ff9900 !important; box-shadow: 0 0 12px rgba(255, 153, 0, 0.35) !important; background-color: #fffdf5; }
     .badge-prioridad { background-color: #ff9900 !important; color: #000000 !important; font-size: 11px; font-weight: bold; padding: 3px 6px; border-radius: 4px; text-transform: uppercase; display: inline-block; margin-bottom: 5px; }
 
-    /* Estilo de Bloque Vano/Detalle */
     .block-vano { border: 2px solid #000000; border-radius: 4px; overflow: hidden; text-align: center; margin: 10px 0; background: #fff; }
     .block-vano-header { background-color: #ffffff; color: #000000; font-weight: bold; font-size: 20px; padding: 8px 10px; border-bottom: 2px solid #000000; letter-spacing: 0.5px; }
     .block-vano-body { font-weight: bold; font-size: 16px; padding: 22px 10px; color: #000000; text-transform: uppercase; line-height: 1.3; background-color: #ffffff; }
     
-    /* Grisado de tarjeta Realizada */
     .card-realizado { background-color: #f8f9fa !important; border-color: #ced4da !important; opacity: 0.65; border: 1px solid #ddd !important; box-shadow: none !important;}
     .card-realizado .block-vano { border-color: #6c757d !important; }
     .card-realizado .block-vano-header { background-color: #e9ecef !important; color: #6c757d !important; border-bottom-color: #6c757d !important; }
@@ -112,7 +106,7 @@
 </div>
 
 <script>
-  // ⚠️ REEMPLAZÁ CON TU ENLACE /exec DE GOOGLE APPS SCRIPT
+  // REEMPLAZÁ CON TU ENLACE PROPIO /exec DE GOOGLE APPS SCRIPT
   const WEB_APP_URL = "https://script.google.com/macros/s/AKfycbx8KCIwjKTJM4pjqUrmrgP2Z9rHr0uIfO2r34lHWLfvRa4dPpByc3-ysX_Jbdpqt73YTg/exec";
 
   let reclamosCache = JSON.parse(localStorage.getItem('cuadrilla_reclamos')) || [];
@@ -140,7 +134,6 @@
 
     selCap.innerHTML = '<option value="">-- Seleccione Capataz --</option>';
     opcionesDetalle.capataces.forEach(c => {
-      // Compatibilidad si el cache viejo guardaba strings simples
       const nombreCapataz = (typeof c === 'object') ? c.nombre : c;
       selCap.innerHTML += `<option value="${nombreCapataz}">${nombreCapataz}</option>`;
     });
@@ -172,10 +165,7 @@
       return;
     }
 
-    // BUSCAR EL CAPATAZ EN LA LISTA DESCARGADA PARA COMPROBAR SU CLAVE
     const registroCapataz = opcionesDetalle.capataces.find(c => ((typeof c === 'object' ? c.nombre : c) === capNombre));
-    
-    // Si es un objeto extrae la pass de la hoja, si es viejo por defecto usa 1234
     const passCorrecta = (registroCapataz && typeof registroCapataz === 'object') ? registroCapataz.password : "1234";
 
     if (passIngresada !== passCorrecta) {
@@ -186,16 +176,13 @@
     localStorage.setItem('pref_cuadrilla', cuad);
     localStorage.setItem('pref_capataz', capNombre);
     localStorage.setItem('sesion_capataz', capNombre);
-    
-    // Limpiamos el cuadro por seguridad
     document.getElementById('login-password').value = "";
-    
     verificarSesionActiva();
   }
 
   function cerrarSesion() {
     if(cambiosPendientes.length > 0) {
-      if(!confirm("Tenés cambios sin subir a la planilla. Si cerrás sesión quedarán guardados en este teléfono, pero no se enviarán a la central hasta que vuelvas a ingresar. ¿Salir igual?")) return;
+      if(!confirm("Tenés cambios sin subir a la planilla. ¿Salir igual?")) return;
     }
     localStorage.removeItem('sesion_capataz');
     verificarSesionActiva();
@@ -231,7 +218,7 @@
         
         poblarSelectsLogin();
         poblarLineasFiltro();
-        alert("¡Sincronización exitosa! Se han actualizado las líneas y las contraseñas del personal.");
+        alert("¡Sincronización exitosa! Se actualizaron tramos, colores y claves.");
       })
       .catch((err) => {
         document.body.style.opacity = "1";
@@ -243,7 +230,6 @@
   function poblarLineasFiltro() {
     const select = document.getElementById('select-linea');
     select.innerHTML = '<option value="">-- Seleccione una línea --</option>';
-    
     const capatazLogueado = localStorage.getItem('sesion_capataz') || "";
     
     const lineasAsignadas = resumenCache
@@ -276,7 +262,6 @@
       return;
     }
 
-    // Ordenamiento por prioridad (Casilla de verificación Columna D)
     filtrados.sort((a, b) => {
       let aCheck = a.datosFila[3] === true || a.datosFila[3] === "TRUE";
       let bCheck = b.datosFila[3] === true || b.datosFila[3] === "TRUE";
@@ -301,7 +286,6 @@
         const esPrioritario = r.datosFila[3] === true || r.datosFila[3] === "TRUE";
 
         const card = document.createElement('div');
-        
         if (estadoActual === 'Realizado') {
           card.className = 'card card-realizado';
         } else if (esPrioritario) {
@@ -313,20 +297,26 @@
         let vanoTexto = r.datosFila[4] !== undefined && r.datosFila[4] !== "" ? r.datosFila[4] : "S/V";
         let detalleTexto = r.datosFila[8] !== undefined && r.datosFila[8] !== "" ? r.datosFila[8] : "SIN DETALLE";
 
-        let colorFinal = "#ffffff";
-        let rawColor = r.colorFondo || (r.datosFila && r.datosFila[12]) || "";
+        // --- MOTOR TRADUCTOR DE COLORES PASTEL CORRECTOS ---
+        let colorFinal = "#ffffff"; 
+        let rawColor = r.colorFondo || "";
         if (rawColor) {
           let cClean = rawColor.toString().trim().toLowerCase();
-          if (cClean.startsWith("#")) {
-            if (cClean === "#ffff00") colorFinal = "#ffe599";
-            else if (cClean === "#00ff00" || cClean === "#b7e1cd") colorFinal = "#c2e0c6";
-            else if (cClean === "#ff0000" || cClean === "#f4c7c3") colorFinal = "#ff8a8a";
-            else colorFinal = rawColor;
-          } else {
-            if (cClean.includes("amarillo") || cClean === "yellow") colorFinal = "#ffe599";
-            else if (cClean.includes("verde") || cClean === "green") colorFinal = "#c2e0c6";
-            else if (cClean.includes("rojo") || cClean === "red") colorFinal = "#ff8a8a";
-            else colorFinal = rawColor;
+          // Mapea los amarillos (vibrantes o tenues) al amarillo pastel exacto de tu muestra
+          if (cClean === "#ffff00" || cClean === "#fff2cc" || cClean === "#ffe599" || cClean.includes("yellow") || cClean.includes("amarillo")) {
+            colorFinal = "#ffe599"; 
+          } 
+          // Mapea los verdes al verde pastel exacto de tu muestra
+          else if (cClean === "#00ff00" || cClean === "#d9ead3" || cClean === "#b7e1cd" || cClean === "#c2e0c6" || cClean.includes("green") || cClean.includes("verde")) {
+            colorFinal = "#c2e0c6";
+          } 
+          // Mapea los rojos/rosas al rojo pastel exacto de tu muestra
+          else if (cClean === "#ff0000" || cClean === "#f4c7c3" || cClean === "#fce5cd" || cClean === "#ff8a8a" || cClean === "#ff9999" || cClean.includes("red") || cClean.includes("rojo")) {
+            colorFinal = "#ff9999";
+          } 
+          // Si es cualquier otro color Hexadecimal válido
+          else if (cClean.startsWith("#") && cClean !== "#ffffff") {
+            colorFinal = rawColor;
           }
         }
 
@@ -361,7 +351,7 @@
           
           <div class="block-vano">
             <div class="block-vano-header">${vanoTexto}</div>
-            <div class="block-vano-body" style="${estadoActual !== 'Realizado' ? 'background-color:' + colorFinal + ' !important;' : ''}">
+            <div class="block-vano-body" style="background-color: ${colorFinal} !important;">
               ${detalleTexto}
             </div>
           </div>
@@ -389,6 +379,7 @@
       }
     }
 
+    // DISPARO SEGURO DE GEOLOCALIZACIÓN
     if (navigator.geolocation) {
       navigator.geolocation.getCurrentPosition(
         function(position) {
@@ -401,7 +392,7 @@
           console.warn("Error de GPS:", error.message);
           guardarLocalYEnviarWpp(numFila, nuevoEstado, comentario, cuad, cap, reclamo, "No disponible (Sin señal GPS)");
         },
-        { enableHighAccuracy: true, timeout: 6000 }
+        { enableHighAccuracy: true, timeout: 5000 }
       );
     } else {
       guardarLocalYEnviarWpp(numFila, nuevoEstado, comentario, cuad, cap, reclamo, "No soportado");
@@ -409,6 +400,7 @@
   }
 
   function guardarLocalYEnviarWpp(numFila, nuevoEstado, comentario, cuadrilla, capataz, reclamo, linkMapas) {
+    // 1. Guardar localmente
     cambiosPendientes = cambiosPendientes.filter(c => c.numFila !== numFila);
     cambiosPendientes.push({ numFila: numFila, nuevoEstado: nuevoEstado, comentario: comentario });
     localStorage.setItem('cuadrilla_cambios', JSON.stringify(cambiosPendientes));
@@ -416,6 +408,7 @@
     actualizarAlertaCambios();
     renderizarReclamosAgrupados();
 
+    // 2. Armar mensaje de WhatsApp
     let vanoWpp = reclamo.datosFila[4] !== undefined && reclamo.datosFila[4] !== "" ? reclamo.datosFila[4] : "-";
     let detalleWpp = reclamo.datosFila[8] !== undefined && reclamo.datosFila[8] !== "" ? reclamo.datosFila[8] : "-";
 
@@ -434,8 +427,9 @@
     }
     msg += `*Ubicación:* ${linkMapas}\n`;
 
+    // 3. APERTURA DIRECTA (Evita el bloqueo de ventanas emergentes en navegadores móviles)
     const urlWpp = "https://api.whatsapp.com/send?text=" + encodeURIComponent(msg);
-    window.open(urlWpp, "_blank");
+    window.location.href = urlWpp;
   }
 
   function sincronizarConPlanilla() {
@@ -450,7 +444,7 @@
     })
     .then(() => {
       document.body.style.opacity = "1";
-      alert("¡Planilla actualizada con éxito! Se registraron las fechas y las horas correspondientes.");
+      alert("¡Planilla actualizada con éxito! Se registraron las fechas en columna G.");
       cambiosPendientes = [];
       localStorage.removeItem('cuadrilla_cambios');
       actualizarAlertaCambios();
