@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>App Cuadrillas PWA v2.1</title>
+  <title>App Cuadrillas PWA v2.2</title>
   <link rel="manifest" href="manifest.json">
   <meta name="theme-color" content="#0056b3">
   <style>
@@ -68,7 +68,7 @@
 </div>
 
 <script>
-  // ⚠️ REEMPLAZÁ ESTO CON TU ENLACE /exec DE GOOGLE APPS SCRIPT
+  // Enlace /exec de Google Apps Script integrado directamente
   const WEB_APP_URL = "https://script.google.com/macros/s/AKfycbx8KCIwjKTJM4pjqUrmrgP2Z9rHr0uIfO2r34lHWLfvRa4dPpByc3-ysX_Jbdpqt73YTg/exec";
 
   let reclamosCache = JSON.parse(localStorage.getItem('cuadrilla_reclamos')) || [];
@@ -148,7 +148,7 @@
     select.innerHTML = '<option value="">-- Seleccione una línea --</option>';
     const lineas = [...new Set(reclamosCache.map(r => r.linea))].filter(Boolean);
     lineas.sort().forEach(l => {
-      select.innerHTML += `<option value="${l}">${l}</option>';
+      select.innerHTML += `<option value="${l}">${l}</option>`;
     });
     document.getElementById('lista-reclamos').innerHTML = '';
   }
@@ -183,7 +183,6 @@
 
         const card = document.createElement('div');
         
-        // Estilo condicional si ya fue Realizado
         if (estadoActual === 'Realizado') {
           card.className = 'card card-realizado';
         } else {
@@ -194,13 +193,11 @@
 
         let detallesHtml = '';
         r.cabeceras.forEach((cab, idx) => {
-          // Ocultamos de los detalles escritos las columnas fijas y la columna M (idx === 12)
           if (cab !== "LINEA" && cab !== "ESTADO" && idx !== 12 && r.datosFila[idx] !== "") {
             detallesHtml += `<div class="detalle-item"><b>${cab}:</b> ${r.datosFila[idx]}</div>`;
           }
         });
 
-        // Configuración de botones o mensaje de bloqueo
         let bloqueAcciones = '';
         let badgeClase = estadoActual === 'En proceso' ? 'badge-proc' : 'badge-pend';
         if (estadoActual === 'Realizado') badgeClase = 'badge-real';
@@ -248,7 +245,6 @@
       }
     }
 
-    // --- CAPTURA DE UBICACIÓN GPS ---
     if (navigator.geolocation) {
       navigator.geolocation.getCurrentPosition(
         function(position) {
@@ -260,7 +256,6 @@
         },
         function(error) {
           console.warn("Error de GPS:", error.message);
-          // Si el GPS falla o no dan permiso, se manda el reporte aclarando eso
           guardarLocalYEnviarWpp(numFila, nuevoEstado, comentario, cuad, cap, reclamo, "No disponible (Sin señal GPS o permiso denegado)");
         },
         { enableHighAccuracy: true, timeout: 6000 }
@@ -271,7 +266,6 @@
   }
 
   function guardarLocalYEnviarWpp(numFila, nuevoEstado, comentario, cuadrilla, capataz, reclamo, linkMapas) {
-    // Registrar localmente el cambio
     cambiosPendientes = cambiosPendientes.filter(c => c.numFila !== numFila);
     cambiosPendientes.push({ numFila: numFila, nuevoEstado: nuevoEstado, comentario: comentario });
     localStorage.setItem('cuadrilla_cambios', JSON.stringify(cambiosPendientes));
@@ -279,7 +273,6 @@
     actualizarAlertaCambios();
     renderizarReclamosAgrupados();
 
-    // Armar y disparar WhatsApp
     let msg = `*REPORTE DE MOVIMIENTO RAT*\n`;
     msg += `*Estado:* ${nuevoEstado === 'Realizado' ? '✅ REALIZADO' : '⏳ EN PROCESO'}\n`;
     msg += `*Fila:* #${reclamo.numFila}\n`;
