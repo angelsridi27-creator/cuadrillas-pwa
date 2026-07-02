@@ -3,95 +3,140 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>App Cuadrillas PWA</title>
+  <title>App Cuadrillas PWA v2</title>
   <link rel="manifest" href="manifest.json">
-  <meta name="theme-color" content="#007bff">
+  <meta name="theme-color" content="#0056b3">
   <style>
-    body { font-family: Arial, sans-serif; margin: 15px; background-color: #f4f6f9; color: #333; }
-    .container { max-width: 600px; margin: auto; background: white; padding: 20px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
-    h2 { text-align: center; color: #0056b3; margin-top: 5px;}
-    .btn { display: block; width: 100%; padding: 14px; margin: 10px 0; border: none; border-radius: 6px; font-size: 16px; font-weight: bold; cursor: pointer; text-align: center; box-sizing: border-box; text-decoration: none; }
+    body { font-family: Arial, sans-serif; margin: 15px; background-color: #f0f2f5; color: #333; }
+    .container { max-width: 600px; margin: auto; background: white; padding: 20px; border-radius: 10px; box-shadow: 0 4px 8px rgba(0,0,0,0.1); }
+    h2 { text-align: center; color: #0056b3; margin-bottom: 20px; }
+    .seccion-encargado { background: #e9ecef; padding: 12px; border-radius: 6px; margin-bottom: 15px; border: 1px solid #ced4da; }
+    .seccion-encargado label { font-weight: bold; font-size: 14px; display: block; margin-top: 6px; }
+    .btn { display: block; width: 100%; padding: 14px; margin: 10px 0; border: none; border-radius: 6px; font-size: 16px; font-weight: bold; cursor: pointer; text-align: center; box-sizing: border-box; }
     .btn-primary { background-color: #007bff; color: white; }
     .btn-success { background-color: #28a745; color: white; }
-    .btn-whatsapp { background-color: #25d366; color: white; }
-    select { width: 100%; padding: 12px; margin: 8px 0; border-radius: 4px; border: 1px solid #ccc; font-size: 16px; box-sizing: border-box; }
-    .card { background: #fff; border: 1px solid #ddd; padding: 15px; margin: 12px 0; border-radius: 6px; border-left: 6px solid #ffc107; }
-    .card.en-proceso { border-left-color: #17a2b8; }
-    .card.realizado { border-left-color: #28a745; background-color: #f1f9f1; }
+    select { width: 100%; padding: 12px; margin: 5px 0 12px 0; border-radius: 4px; border: 1px solid #ccc; font-size: 16px; box-sizing: border-box; background: white; }
+    
+    .categoria-header { background: #0056b3; color: white; padding: 8px 12px; border-radius: 4px; margin-top: 25px; margin-bottom: 10px; font-size: 16px; text-transform: uppercase; letter-spacing: 0.5px;}
+    
+    .card { background: #fff; border: 1px solid #ddd; padding: 15px; margin: 12px 0; border-radius: 6px; border-left: 6px solid #ffc107; position: relative; }
     .badge { display: inline-block; padding: 4px 8px; font-size: 12px; font-weight: bold; border-radius: 4px; margin-bottom: 8px; text-transform: uppercase; }
     .badge-pend { background: #ffc107; color: #000; }
     .badge-proc { background: #17a2b8; color: #fff; }
-    .badge-real { background: #28a745; color: #fff; }
-    .detalle-item { font-size: 14px; margin: 5px 0; line-height: 1.4; }
-    .acciones { margin-top: 12px; display: flex; gap: 8px; }
-    .acciones button { flex: 1; padding: 10px; font-size: 13px; font-weight: bold; border: none; border-radius: 4px; cursor: pointer; }
+    
+    .detalle-item { font-size: 14px; margin: 4px 0; line-height: 1.4; }
+    .acciones { margin-top: 15px; display: flex; gap: 8px; }
+    .acciones button { flex: 1; padding: 12px; font-size: 14px; font-weight: bold; border: none; border-radius: 4px; cursor: pointer; color: white; }
+    
     .status-box { padding: 12px; text-align: center; font-weight: bold; border-radius: 4px; margin-bottom: 15px; font-size: 14px; }
     .status-sync { background-color: #fff3cd; color: #856404; border: 1px solid #ffeeba; }
   </style>
 </head>
 <body>
 <div class="container">
-  <h2>Ejecución de Reclamos (PWA)</h2>
+  <h2>Control de Cuadrillas RAT</h2>
   
+  <div class="seccion-encargado">
+    <label for="select-cuadrilla">👷 Seleccionar Cuadrilla:</label>
+    <select id="select-cuadrilla" onchange="guardarConfigLocal()">
+      <option value="">-- Seleccione Cuadrilla --</option>
+    </select>
+    
+    <label for="select-capataz">👤 Seleccionar Capataz:</label>
+    <select id="select-capataz" onchange="guardarConfigLocal()">
+      <option value="">-- Seleccione Capataz --</option>
+    </select>
+  </div>
+
   <div id="sync-status" class="status-box status-sync" style="display:none;"></div>
 
-  <button class="btn btn-primary" onclick="descargarDatosOnline()">1. Cargar/Actualizar Datos (Con Señal)</button>
+  <button class="btn btn-primary" onclick="descargarDatosOnline()">1. Sincronizar Datos Iniciales (Con Señal)</button>
   
-  <label for="select-linea"><b>Seleccionar Línea / Tramo:</b></label>
-  <select id="select-linea" onchange="filtrarPorLinea()">
+  <label for="select-linea"><b>Filtrar por Línea / Tramo:</b></label>
+  <select id="select-linea" onchange="renderizarReclamosAgrupados()">
     <option value="">-- Seleccione una línea --</option>
   </select>
 
   <div id="lista-reclamos"></div>
 
-  <hr style="margin: 20px 0; border: 0; border-top: 1px solid #ccc;">
-  <button class="btn btn-whatsapp" onclick="enviarResumenWhatsApp()">2. Enviar Resumen al WhatsApp</button>
-  <button class="btn btn-success" onclick="sincronizarConPlanilla()">3. Sincronizar Cambios con Planilla</button>
+  <hr style="margin: 30px 0; border: 0; border-top: 2px dashed #ccc;">
+  <button class="btn btn-success" style="font-size: 18px;" onclick="sincronizarConPlanilla()">2. Subir Cambios Guardados a Planilla</button>
 </div>
 
 <script>
-  // ⚠️ PONÉ ACÁ LA URL DE TU NUEVA IMPLEMENTACIÓN DE APPS SCRIPT
+  // ⚠️ REEMPLAZÁ ESTO CON TU ENLACE /exec DE GOOGLE APPS SCRIPT
   const WEB_APP_URL = "https://script.google.com/macros/s/AKfycbx8KCIwjKTJM4pjqUrmrgP2Z9rHr0uIfO2r34lHWLfvRa4dPpByc3-ysX_Jbdpqt73YTg/exec";
 
   let reclamosCache = JSON.parse(localStorage.getItem('cuadrilla_reclamos')) || [];
   let cambiosPendientes = JSON.parse(localStorage.getItem('cuadrilla_cambios')) || [];
+  let opcionesDetalle = JSON.parse(localStorage.getItem('cuadrilla_detalles')) || { cuadrillas: [], capataces: [] };
 
   window.onload = function() {
-    // Registrar el Service Worker para hacerla PWA
     if ('serviceWorker' in navigator) {
-      navigator.serviceWorker.register('sw.js').then(() => console.log("SW Registrado"));
+      navigator.serviceWorker.register('sw.js').then(() => console.log("SW Activo"));
     }
-    actualizarAlertaCambios();
+    inicializarSelectsConfig();
     poblarLineas();
+    actualizarAlertaCambios();
   };
+
+  function inicializarSelectsConfig() {
+    const selCuad = document.getElementById('select-cuadrilla');
+    const selCap = document.getElementById('select-capataz');
+    
+    selCuad.innerHTML = '<option value="">-- Seleccione Cuadrilla --</option>';
+    opcionesDetalle.cuadrillas.forEach(c => {
+      selCuad.innerHTML += `<option value="${c}">${c}</option>`;
+    });
+
+    selCap.innerHTML = '<option value="">-- Seleccione Capataz --</option>';
+    opcionesDetalle.capataces.forEach(c => {
+      selCap.innerHTML += `<option value="${c}">${c}</option>`;
+    });
+
+    // Recuperar lo que eligieron antes
+    selCuad.value = localStorage.getItem('pref_cuadrilla') || "";
+    selCap.value = localStorage.getItem('pref_capataz') || "";
+  }
+
+  function guardarConfigLocal() {
+    localStorage.setItem('pref_cuadrilla', document.getElementById('select-cuadrilla').value);
+    localStorage.setItem('pref_capataz', document.getElementById('select-capataz').value);
+  }
 
   function actualizarAlertaCambios() {
     const alertBox = document.getElementById('sync-status');
     if (cambiosPendientes.length > 0) {
       alertBox.style.display = 'block';
-      alertBox.innerText = `⚠️ Tienes ${cambiosPendientes.length} cambio(s) pendientes de subir a la planilla.`;
+      alertBox.innerText = `⚠️ Tienes ${cambiosPendientes.length} cambio(s) listos. ¡No olvides subirlos al volver!`;
     } else {
       alertBox.style.display = 'none';
     }
   }
 
   function descargarDatosOnline() {
-    if(!navigator.onLine) return alert("Estás sin conexión. No puedes descargar datos nuevos ahora.");
-    document.body.style.opacity = "0.6";
+    if(!navigator.onLine) return alert("Necesitas internet para esta acción.");
+    document.body.style.opacity = "0.5";
 
     fetch(`${WEB_APP_URL}?action=obtenerDatos`)
       .then(res => res.json())
       .then(res => {
         document.body.style.opacity = "1";
         if (res.error) return alert("Error: " + res.error);
+        
         reclamosCache = res.data;
+        opcionesDetalle = { cuadrillas: res.cuadrillas, capataces: res.capataces };
+        
         localStorage.setItem('cuadrilla_reclamos', JSON.stringify(reclamosCache));
+        localStorage.setItem('cuadrilla_detalles', JSON.stringify(opcionesDetalle));
+        
+        inicializarSelectsConfig();
         poblarLineas();
-        alert("¡Base de datos sincronizada en el teléfono! Listo para trabajar sin señal.");
+        alert("¡Datos y listas de la pestaña 'Detalles' descargados!");
       })
       .catch(() => {
         document.body.style.opacity = "1";
-        alert("Error de red al intentar descargar los datos.");
+        alert("Fallo de conexión al descargar.");
       });
   }
 
@@ -100,14 +145,12 @@
     select.innerHTML = '<option value="">-- Seleccione una línea --</option>';
     const lineas = [...new Set(reclamosCache.map(r => r.linea))].filter(Boolean);
     lineas.sort().forEach(l => {
-      const opt = document.createElement('option');
-      opt.value = l; opt.textContent = l;
-      select.appendChild(opt);
+      select.innerHTML += `<option value="${l}">${l}</option>`;
     });
     document.getElementById('lista-reclamos').innerHTML = '';
   }
 
-  function filtrarPorLinea() {
+  function renderizarReclamosAgrupados() {
     const lineaSeleccionada = document.getElementById('select-linea').value;
     const listaDiv = document.getElementById('lista-reclamos');
     listaDiv.innerHTML = '';
@@ -115,85 +158,126 @@
 
     const filtrados = reclamosCache.filter(r => r.linea === lineaSeleccionada);
     if (filtrados.length === 0) {
-      listaDiv.innerHTML = '<p style="text-align:center; color:#666; margin-top:20px;">No hay reclamos pendientes.</p>';
+      listaDiv.innerHTML = '<p style="text-align:center; color:#666;">No hay tareas pendientes en este tramo.</p>';
       return;
     }
 
+    // --- AGRUPACIÓN POR CATEGORÍA ---
+    const grupos = {};
     filtrados.forEach(r => {
-      const cambioLocal = cambiosPendientes.find(c => c.numFila === r.numFila);
-      const estadoActual = cambioLocal ? cambioLocal.nuevoEstado : r.estado;
+      if (!grupos[r.categoria]) grupos[r.categoria] = [];
+      grupos[r.categoria].push(r);
+    });
 
-      const card = document.createElement('div');
-      card.className = `card ${estadoActual.toLowerCase().replace(" ", "-")}`;
-      
-      let badgeClass = 'badge-pend';
-      if(estadoActual.toLowerCase() === 'en proceso') badgeClass = 'badge-proc';
-      if(estadoActual.toLowerCase() === 'realizado') badgeClass = 'badge-real';
+    for (const categoria in grupos) {
+      // Título de Categoría
+      const header = document.createElement('div');
+      header.className = 'categoria-header';
+      header.innerText = categoria;
+      listaDiv.appendChild(header);
 
-      let detallesHtml = '';
-      r.cabeceras.forEach((cab, idx) => {
-        if (cab !== "LINEA" && cab !== "ESTADO" && r.datosFila[idx] !== "") {
-          detallesHtml += `<div class="detalle-item"><b>${cab}:</b> ${r.datosFila[idx]}</div>`;
+      // Tarjetas de esa categoría
+      grupos[categoria].forEach(r => {
+        const cambioLocal = cambiosPendientes.find(c => c.numFila === r.numFila);
+        const estadoActual = cambioLocal ? cambioLocal.nuevoEstado : r.estado;
+
+        const card = document.createElement('div');
+        card.className = 'card';
+        
+        // Aplicar color de fondo personalizado desde la celda de la columna M si existe
+        if (r.colorFondo) {
+          card.style.backgroundColor = r.colorFondo;
         }
+
+        // Estilo de borde por defecto según estado
+        card.style.borderLeft = estadoActual === 'En proceso' ? '6px solid #17a2b8' : '6px solid #ffc107';
+
+        let detallesHtml = '';
+        r.cabeceras.forEach((cab, idx) => {
+          if (cab !== "LINEA" && cab !== "ESTADO" && r.datosFila[idx] !== "") {
+            detallesHtml += `<div class="detalle-item"><b>${cab}:</b> ${r.datosFila[idx]}</div>`;
+          }
+        });
+
+        card.innerHTML = `
+          <span class="badge ${estadoActual === 'En proceso' ? 'badge-proc' : 'badge-pend'}">${estadoActual}</span>
+          <div class="detalle-item"><b>Fila:</b> #${r.numFila}</div>
+          ${detallesHtml}
+          <div class="acciones">
+            <button style="background:#17a2b8;" onclick="procesarCambioEstado(${r.numFila}, 'En proceso')">En Proceso ⏳</button>
+            <button style="background:#28a745;" onclick="procesarCambioEstado(${r.numFila}, 'Realizado')">Realizado ✅</button>
+          </div>
+        `;
+        listaDiv.appendChild(card);
       });
-
-      card.innerHTML = `
-        <span class="badge ${badgeClass}">${estadoActual}</span>
-        <div class="detalle-item"><b>Fila:</b> #${r.numFila}</div>
-        ${detallesHtml}
-        <div class="acciones">
-          <button style="background:#17a2b8; color:white;" onclick="cambiarEstadoLocal(${r.numFila}, 'En proceso')">En Proceso</button>
-          <button style="background:#28a745; color:white;" onclick="cambiarEstadoLocal(${r.numFila}, 'Realizado')">Realizado</button>
-          <button style="background:#ffc107; color:black;" onclick="cambiarEstadoLocal(${r.numFila}, 'Pendiente')">Pendiente</button>
-        </div>
-      `;
-      listaDiv.appendChild(card);
-    });
+    }
   }
 
-  function cambiarEstadoLocal(numFila, nuevoEstado) {
-    cambiosPendientes = cambiosPendientes.filter(c => c.numFila !== numFila);
-    cambiosPendientes.push({ numFila: numFila, nuevoEstado: nuevoEstado });
-    localStorage.setItem('cuadrilla_cambios', JSON.stringify(cambiosPendientes));
-    actualizarAlertaCambios();
-    filtrarPorLinea();
-  }
+  function procesarCambioEstado(numFila, nuevoEstado) {
+    const cuad = document.getElementById('select-cuadrilla').value;
+    const cap = document.getElementById('select-capataz').value;
 
-  function enviarResumenWhatsApp() {
-    const lineaSeleccionada = document.getElementById('select-linea').value;
-    if (!lineaSeleccionada) return alert("Selecciona una línea.");
+    if (!cuad || !cap) {
+      alert("❌ ERROR: Primero debes seleccionar la CUADRILLA y el CAPATAZ en los campos de arriba.");
+      return;
+    }
 
-    const reclamosDeLinea = reclamosCache.filter(r => r.linea === lineaSeleccionada);
-    let texto = `*RESUMEN DE CUADRILLA*\n*Línea:* ${lineaSeleccionada}\n\n`;
+    const reclamo = reclamosCache.find(r => r.numFila === numFila);
+    let comentario = "";
 
-    let cambiosHechos = false;
-    reclamosDeLinea.forEach(r => {
-      const cambio = cambiosPendientes.find(c => c.numFila === r.numFila);
-      if (cambio) {
-        cambiosHechos = true;
-        let icono = cambio.nuevoEstado === "Realizado" ? "✅" : (cambio.nuevoEstado === "En proceso" ? "⏳" : "⚠️");
-        let identificador = r.datosFila[2] || `Fila #${r.numFila}`;
-        texto += `${icono} *${identificador}* -> _${cambio.nuevoEstado}_\n`;
+    // Si pasa a 'En proceso', solicitamos el breve texto obligatorio
+    if (nuevoEstado === "En proceso") {
+      comentario = prompt("Escriba un breve texto sobre el avance (Llegará a la columna J):");
+      if (comentario === null) return; // Canceló
+      if (comentario.trim() === "") {
+        alert("El texto es obligatorio para pasar a 'En proceso'.");
+        return;
       }
-    });
+    }
 
-    if (!cambiosHechos) return alert("No hay modificaciones en esta línea para reportar.");
-    window.open("https://api.whatsapp.com/send?text=" + encodeURIComponent(texto), "_blank");
+    // Registrar localmente
+    cambiosPendientes = cambiosPendientes.filter(c => c.numFila !== numFila);
+    cambiosPendientes.push({ numFila: numFila, nuevoEstado: nuevoEstado, comentario: comentario });
+    localStorage.setItem('cuadrilla_cambios', JSON.stringify(cambiosPendientes));
+    
+    actualizarAlertaCambios();
+    renderizarReclamosAgrupados();
+
+    // --- DISPARO OBLIGATORIO DE WHATSAPP ---
+    ejecutarEnvioWhatsApp(reclamo, nuevoEstado, comentario, cuad, cap);
+  }
+
+  function ejecutarEnvioWhatsApp(reclamo, estado, comentario, cuadrilla, capataz) {
+    let msg = `*REPORTE DE MOVIMIENTO RAT*\n`;
+    msg += `*Estado:* ${estado === 'Realizado' ? '✅ REALIZADO' : '⏳ EN PROCESO'}\n`;
+    msg += `*Fila:* #${reclamo.numFila}\n`;
+    msg += `*Línea:* ${reclamo.linea}\n`;
+    msg += `*Categoría:* ${reclamo.categoria}\n`;
+    msg += `*Cuadrilla:* ${cuadrilla}\n`;
+    msg += `*Capataz:* ${capataz}\n`;
+    
+    if (comentario) {
+      msg += `*Detalle:* _${comentario}_\n`;
+    }
+
+    // Abre de forma forzada la ventana de WhatsApp
+    const urlWpp = "https://api.whatsapp.com/send?text=" + encodeURIComponent(msg);
+    window.open(urlWpp, "_blank");
   }
 
   function sincronizarConPlanilla() {
-    if (cambiosPendientes.length === 0) return alert("No hay cambios para subir.");
-    if (!navigator.onLine) return alert("Estás sin señal en este momento. Intenta al regresar.");
-    document.body.style.opacity = "0.6";
+    if (cambiosPendientes.length === 0) return alert("No hay movimientos para subir.");
+    if (!navigator.onLine) return alert("Estás sin señal de internet en este momento.");
+    document.body.style.opacity = "0.5";
 
     fetch(WEB_APP_URL, {
       method: "POST",
-      mode: "no-cors", // Evita problemas de preflight en Apps Script
+      mode: "no-cors",
       body: JSON.stringify({ action: "guardarCambios", cambios: cambiosPendientes })
     })
     .then(() => {
       document.body.style.opacity = "1";
-      alert("¡Cambios enviados con éxito!");
+      alert("¡Planilla actualizada con éxito! Se registraron las fechas y los comentarios.");
       cambiosPendientes = [];
       localStorage.removeItem('cuadrilla_cambios');
       actualizarAlertaCambios();
@@ -201,7 +285,7 @@
     })
     .catch(() => {
       document.body.style.opacity = "1";
-      alert("Error al intentar conectarse con Google Sheets.");
+      alert("Error de conexión al enviar.");
     });
   }
 </script>
