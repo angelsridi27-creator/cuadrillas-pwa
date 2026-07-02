@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>App Cuadrillas PWA v2.3</title>
+  <title>App Cuadrillas PWA v2.4</title>
   <link rel="manifest" href="manifest.json">
   <meta name="theme-color" content="#0056b3">
   <style>
@@ -22,10 +22,10 @@
     /* Contenedor externo de la tarjeta */
     .card { background: #fff; border: 1px solid #ddd; padding: 15px; margin: 12px 0; border-radius: 8px; position: relative; box-shadow: 0 2px 4px rgba(0,0,0,0.05); }
     
-    /* --- NUEVO ESTILO DE BLOQUE SEGÚN CAPTURAS --- */
+    /* --- ESTILO DE BLOQUE SEGÚN CAPTURAS --- */
     .block-vano { border: 2px solid #000000; border-radius: 4px; overflow: hidden; text-align: center; margin: 10px 0; background: #fff; }
     .block-vano-header { background-color: #ffffff; color: #000000; font-weight: bold; font-size: 20px; padding: 8px 10px; border-bottom: 2px solid #000000; letter-spacing: 0.5px; }
-    .block-vano-body { font-weight: bold; font-size: 16px; padding: 22px 10px; color: #000000; text-transform: uppercase; line-height: 1.3; }
+    .block-vano-body { font-weight: bold; font-size: 16px; padding: 22px 10px; color: #000000; text-transform: uppercase; line-height: 1.3; background-color: #ffffff; }
     
     /* Bloqueo y Grisado de tarjeta Realizada */
     .card-realizado { background-color: #f8f9fa !important; border-color: #ced4da !important; opacity: 0.75; }
@@ -51,6 +51,7 @@
 <div class="container">
   <h2>Control de Cuadrillas RAT</h2>
   
+  <!-- Configuración del Encargado en calle -->
   <div class="seccion-encargado">
     <label for="select-cuadrilla"><b>Compartido por Cuadrilla:</b></label>
     <select id="select-cuadrilla" onchange="guardarConfigLocal()">
@@ -72,6 +73,7 @@
     <option value="">-- Seleccione una línea --</option>
   </select>
 
+  <!-- Contenedor Dinámico -->
   <div id="lista-reclamos"></div>
 
   <hr style="margin: 30px 0; border: 0; border-top: 2px dashed #ccc;">
@@ -79,7 +81,7 @@
 </div>
 
 <script>
-  // Enlace /exec de tu Google Apps Script ya integrado
+  // Enlace /exec de tu Google Apps Script integrado
   const WEB_APP_URL = "https://script.google.com/macros/s/AKfycbx8KCIwjKTJM4pjqUrmrgP2Z9rHr0uIfO2r34lHWLfvRa4dPpByc3-ysX_Jbdpqt73YTg/exec";
 
   let reclamosCache = JSON.parse(localStorage.getItem('cuadrilla_reclamos')) || [];
@@ -193,7 +195,6 @@
         const estadoActual = cambioLocal ? cambioLocal.nuevoEstado : r.estado;
 
         const card = document.createElement('div');
-        
         if (estadoActual === 'Realizado') {
           card.className = 'card card-realizado';
         } else {
@@ -204,7 +205,25 @@
         let vanoTexto = r.datosFila[4] !== undefined && r.datosFila[4] !== "" ? r.datosFila[4] : "S/V";
         let detalleTexto = r.datosFila[8] !== undefined && r.datosFila[8] !== "" ? r.datosFila[8] : "SIN DETALLE";
 
-        // Renderizado secundario de otras columnas que puedan servir, ocultando fijas, Vano, Detalle y Color
+        // --- DETECTOR Y TRADUCTOR DE COLOR MEJORADO ---
+        let colorFinal = "#ffffff"; // Blanco por defecto si no hay nada
+        let rawColor = r.colorFondo || (r.datosFila && r.datosFila[12]) || "";
+        
+        if (rawColor) {
+          let cClean = rawColor.toString().trim().toLowerCase();
+          if (cClean.startsWith("#")) {
+            if (cClean === "#ffff00") colorFinal = "#ffe599"; // Amarillo suave
+            else if (cClean === "#00ff00" || cClean === "#b7e1cd") colorFinal = "#c2e0c6"; // Verde suave
+            else if (cClean === "#ff0000" || cClean === "#f4c7c3") colorFinal = "#ff8a8a"; // Rojo suave
+            else colorFinal = rawColor;
+          } else {
+            if (cClean.includes("amarillo") || cClean === "yellow") colorFinal = "#ffe599";
+            else if (cClean.includes("verde") || cClean === "green") colorFinal = "#c2e0c6";
+            else if (cClean.includes("rojo") || cClean === "red") colorFinal = "#ff8a8a";
+            else colorFinal = rawColor;
+          }
+        }
+
         let detallesHtml = '';
         r.cabeceras.forEach((cab, idx) => {
           if (cab !== "LINEA" && cab !== "ESTADO" && idx !== 12 && idx !== 4 && idx !== 8 && r.datosFila[idx] !== "") {
@@ -227,7 +246,6 @@
           `;
         }
 
-        // Armamos la estructura de bloque idéntica a tus capturas
         card.innerHTML = `
           <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
             <span class="badge ${badgeClase}">${estadoActual}</span>
@@ -236,7 +254,7 @@
           
           <div class="block-vano">
             <div class="block-vano-header">${vanoTexto}</div>
-            <div class="block-vano-body" style="${estadoActual !== 'Realizado' && r.colorFondo ? 'background-color:' + r.colorFondo : ''}">
+            <div class="block-vano-body" style="${estadoActual !== 'Realizado' ? 'background-color:' + colorFinal + ' !important;' : ''}">
               ${detalleTexto}
             </div>
           </div>
